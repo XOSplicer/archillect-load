@@ -5,12 +5,14 @@ import os
 import errno
 import requests
 
-ARCHILLECT_URL = "http://archillect.com/api/"
-DEFAULT_FOLDER = "img"
-DEFAULT_IMG_PREFIX = "archillect"
-ALLOWED_FORMATS = ["jpg"]
-LAST_NUM_FILE = "last"
-DEFAULT_LINK = "archillect.jpg"
+working_dir = os.path.dirname(os.path.realpath(__file__))
+
+ARCHILLECT_URL = 'http://archillect.com/api/'
+DEFAULT_FOLDER = os.path.join(working_dir, 'img')
+DEFAULT_IMG_PREFIX = 'archillect'
+ALLOWED_FORMATS = ['jpg']
+LAST_NUM_FILE = os.path.join(working_dir, 'last')
+DEFAULT_LINK = os.path.join(working_dir, 'archillect.jpg')
 MAX_RETRIES = 30
 
 def main():
