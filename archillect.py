@@ -62,10 +62,11 @@ def main():
                 last_file.seek(0)
                 last_file.write("{}".format(num))
                 last_file.truncate()
-                break # FINISHED
+                exit(0) # FINISHED
             except requests.ConnectionError:
                 log('failed connection, retry next')
 
+        exit(1) #max retries exceeded
 def symlink_force(target, link_name):
     try:
         os.symlink(target, link_name)
