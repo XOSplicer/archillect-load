@@ -11,44 +11,46 @@ DEFAULT_IMG_PREFIX = "archillect"
 ALLOWED_FORMATS = ["jpg"]
 LAST_NUM_FILE = "last"
 DEFAULT_LINK = "archillect.jpg"
+MAX_RETRIES = 30
 
 def main():
     if len(sys.argv) > 3 or '--help' in sys.argv or '-h' in sys.argv:
-        print 'Usage: {}'.format(sys.argv[0])
+        print 'Usage: {} [-h | --help] [-v | --verbose]'.format(sys.argv[0])
         exit(1)
     if not os.path.isfile(LAST_NUM_FILE):
         with open(LAST_NUM_FILE, 'w') as last_file:
             last_file.write('0')
     with open(LAST_NUM_FILE, 'r+') as last_file:
         num = int(last_file.read())
-        try_again = True
-        while try_again:
+        retries = MAX_RETRIES
+        while retries > 0:
             try:
                 num = num + 1
+                retries = retries - 1
                 api_url = '{}{}'.format(ARCHILLECT_URL, num)
-                print 'calling API: {}'.format(api_url)
+                log('calling API: {}'.format(api_url))
                 api_req = requests.get(api_url)
                 if not api_req.ok:
-                    print 'API call failed: {} {}'.format(api_req.url, api_req.reason)
+                    log('API call failed: {} {}'.format(api_req.url, api_req.reason))
                     continue
                 api_req_json = api_req.json()
                 if 'error' in api_req_json:
-                    print 'API call failed: {} {}'.format(api_req.url, api_req_json['error'])
+                    log('API call failed: {} {}'.format(api_req.url, api_req_json['error']))
                     continue
                 if 'post' not in api_req_json \
                     or 'big' not in api_req_json["post"] \
                     or not isinstance(api_req_json['post']['big'], basestring):
-                    print 'API response invalid'
+                    log('API response invalid')
                     continue
                 img_url = api_req_json["post"]["big"]
                 extension = img_url.split('.')[-1]
                 if extension not in ALLOWED_FORMATS:
-                    print 'Format not allowed: {}'.format(extension)
+                    log('Format not allowed: {}'.format(extension))
                     continue
-                print "Loading imgage: {}".format(img_url)
+                log("Loading imgage: {}".format(img_url))
                 img_req = requests.get(img_url)
                 if not img_req.ok:
-                    print 'Image request failed: {} {}'.format(img_req.url, img_req.reason)
+                    log('Image request failed: {} {}'.format(img_req.url, img_req.reason))
                     continue
                 img_name = '{}.{}.{}'.format(DEFAULT_IMG_PREFIX, num, extension)
                 out_path = os.path.join(DEFAULT_FOLDER, img_name)
@@ -57,10 +59,12 @@ def main():
                 with open(out_path, 'wb') as out_file:
                     out_file.write(img_req.content)
                 symlink_force(out_path, DEFAULT_LINK)
+                last_file.seek(0)
                 last_file.write("{}".format(num))
-                try_again = False
+                last_file.truncate()
+                break # FINISHED
             except requests.ConnectionError:
-                print 'failed connection, retry next'
+                log('failed connection, retry next')
 
 def symlink_force(target, link_name):
     try:
@@ -71,6 +75,10 @@ def symlink_force(target, link_name):
             os.symlink(target, link_name)
         else:
             raise e
+
+def log(msg):
+    if '-v' in sys.argv or '--verbose' in sys.argv:
+        print msg
 
 if __name__ == '__main__':
     main()
